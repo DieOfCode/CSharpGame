@@ -52,15 +52,20 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Drawer.cs" />
+    <Compile Include="EnemyAndPlayer\Door.cs" />
     <Compile Include="EnemyAndPlayer\Enemy.cs" />
+    <Compile Include="EnemyAndPlayer\Key.cs" />
     <Compile Include="EnemyAndPlayer\Player.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="MapAndLine\Level.cs" />
+    <Compile Include="MapAndLine\Levels.cs" />
     <Compile Include="MapAndLine\Line.cs" />
     <Compile Include="MapAndLine\Map.cs" />
     <Compile Include="MapAndLine\Ray.cs" />
     <Compile Include="MapAndLine\Utils.cs" />
     <Compile Include="MapAndLine\Wall.cs" />
+    <Compile Include="Menu.cs" />
     <Compile Include="MyForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -95,6 +100,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include=".gitignore" />
+    <Content Include="Door.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="matr.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

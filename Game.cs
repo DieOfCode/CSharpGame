@@ -12,6 +12,8 @@ namespace Game
     {
         private readonly Player _player;
         private readonly Map _map;
+
+        public HashSet<double> directions;
         public List<Tuple<Line, Wall>>[] CastedRays { get; }
         public Vector PlayerPos => new Vector(_player.X, _player.Y);
         public double PlayerDirection => _player.Direction;
@@ -21,11 +23,12 @@ namespace Game
             _map = map;
             _player = player;
             CastedRays = new List<Tuple<Line, Wall>>[_player.Rays.Count];
+            directions = new HashSet<double>();
         }
 
         private Vector CorrectVector(Vector moveVector)
         {
-            foreach (var wall in _map.Walls)
+            foreach (var wall in _map.Walls.Concat(_map.Doors.Select(x=>x.DorWall)))
             {
                 var t = new Vector(moveVector.X, moveVector.Y);
                 t.Normalize();
@@ -47,7 +50,8 @@ namespace Game
                     var normalVector = new Vector(normalX, normalY);
                     normalVector.Normalize();
                     normalVector *= distance;
-                    moveVector += normalVector.X * moveVector.X + normalVector.Y * moveVector.Y >= 0
+
+                    moveVector += normalVector.X * moveVector.X + normalVector.Y * moveVector.Y > 0
                         ? -normalVector
                         : normalVector;
                 }
@@ -67,7 +71,7 @@ namespace Game
             for (var i = 0; i < _player.Rays.Count; i++)
             {
                 var ray = _player.Rays[i];
-                foreach (var wall in _map.Walls.Concat(_map.Enemies.SelectMany(x => x.EnemyWalls)))
+                foreach (var wall in _map.Walls.Concat(_map.Enemies.SelectMany(x => x.EnemyWalls).Concat(_map.Doors.Select(z=>z.DorWall))))
                 {
                     var currentPoint = ray.Cast(wall);
                     if (currentPoint.X > 0 && currentPoint.Y > 0)
@@ -87,7 +91,71 @@ namespace Game
             {
                 var vec = playerPos - enemy.Position;
                 vec.Normalize();
-                enemy.Move(vec);
+                var ray = new Ray(enemy.Position, 0) {Direction = vec};
+                if (!_map.Walls.Select(x => ray.Cast(x)).Any(x => (enemy.Position - x).Length < (playerPos - enemy.Position).Length))
+                {
+                    var angle = Math.Asin(Math.Abs(vec.Y / vec.Length));
+                    if (vec.X < 0 && vec.Y >= 0)
+                        angle = Math.PI - angle;
+                    else if(vec.X < 0 && vec.Y < 0)
+                        angle = Math.PI + angle;
+                    else if(vec.X > 0 && vec.Y < 0)
+                        angle = 2* Math.PI - angle;
+                    enemy.TurnTo(angle-Math.PI);
+                    enemy.Move(vec);
+                }
+            }
+        }
+
+        public void Shot()
+        {
+            var ray = new Ray(PlayerPos, _player.Direction);
+            var minDistance = double.MaxValue;
+            var s = new Vector(-85, -85);
+            foreach (var w in _map.Walls.Select(wall => ray.Cast(wall)).Where(w => minDistance > Utils.GetDist(w, PlayerPos) && w.X > 0))
+            {
+                minDistance = Utils.GetDist(w, PlayerPos);
+            }
+
+            var bestEnemy = new Enemy(s);
+
+            foreach (var enemy in _map.Enemies)
+            {
+                foreach (var w in enemy.EnemyWalls.Select(wall => ray.Cast(wall)).Where(w => minDistance > Utils.GetDist(w, PlayerPos) && w.X > 0))
+                {
+                    bestEnemy = enemy;
+                    minDistance = Utils.GetDist(w, PlayerPos);
+                }
+            }
+
+            if (bestEnemy.Position.X != -85)
+                _map.Enemies.Remove(bestEnemy);
+        }
+
+        public void PlayerMove()
+        {
+            var vec = new Vector(0, 0);
+            foreach (var direction in directions)
+            {
+                vec += new Vector(Math.Cos(direction + _player.Direction), -Math.Sin(direction + _player.Direction));
+            }
+            if (vec.X != 0 && vec.Y != 0)
+            {
+                vec.Normalize();
+
+                MoveTo(vec * _player.Speed);
+            }
+        }
+
+        public void OpenDor()
+        {
+            foreach (var door in _map.Doors)
+            {
+                if ((PlayerPos - door.Position).Length<=50)
+                {
+                    _map.Doors.Remove(door);
+                    break;
+                }
             }
         }
     }
